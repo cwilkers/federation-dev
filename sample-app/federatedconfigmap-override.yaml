@@ -8,7 +8,7 @@ items:
     namespace: test-namespace
   spec:
     overrides:
-    - clusterName: cluster2
+    - clusterName: cwilkers2
       clusterOverrides:
       - path: data
         value:

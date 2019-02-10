@@ -8,5 +8,6 @@ items:
     namespace: test-namespace
   spec:
     clusterNames:
-    - cluster2
-    - cluster1
+    - cwilkers3
+    - cwilkers2
+    - cwilkers1
