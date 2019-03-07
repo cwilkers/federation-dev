@@ -32,14 +32,14 @@ clusters. A sample application is deployed to both clusters through the
 federation controller.
 
 <a id="markdown-pre-requisites" name="pre-requisites"></a>
-# Pre-requisites
+# Prerequisites
 
 Federation requires an OpenShift 3.11 cluster and works on both [OKD](https://www.okd.io/) and [OpenShift Container Platform](https://www.openshift.com/) (OCP).
 
 This walkthrough will use 2 all-in-one OKD clusters deployed using [minishift](https://github.com/minishift/minishift).
 
 <a id="markdown-install-minishift" name="install-minishift"></a>
-## Install minishift
+## Install Minishift
 
 Follow the [getting started guide](https://docs.okd.io/latest/minishift/getting-started/index.html) for minishift in the OKD documentation to get minishift installed.
 
@@ -60,18 +60,18 @@ The steps in this walkthrough were tested with:
 ~~~sh
 minishift version
 
-minishift v1.28.0+48e89ed
+minishift v1.32.0+009893b
 ~~~
 
 <a id="markdown-install-the-kubefed2-binary" name="install-the-kubefed2-binary"></a>
 ## Install the kubefed2 binary
 
 The `kubefed2` tool manages federated cluter registration. Download the
-0.0.4 release and unpack it into a diretory in your PATH (the
-example uses `$HOME/bin`):
+0.0.6 release and unpack it into a diretory in your PATH (the example uses
+`$HOME/bin`):
 
 ~~~sh
-curl -LOs https://github.com/kubernetes-sigs/federation-v2/releases/download/v0.0.4/kubefed2.tar.gz
+curl -LOs https://github.com/kubernetes-sigs/federation-v2/releases/download/v0.0.6/kubefed2.tar.gz
 tar xzf kubefed2.tar.gz -C ~/bin
 rm -f kubefed2.tar.gz
 ~~~
@@ -81,11 +81,11 @@ Verify that `kubefed2` is working:
 ~~~sh
 kubefed2 version
 
-kubefed2 version: version.Info{Version:"v0.0.4", GitCommit:"2cdf5d37240d9b8b33e2715deb75fbb7f9e003ad", GitTreeState:"clean", BuildDate:"2018-12-10T23:03:18Z", GoVersion:"go1.10.3", Compiler:"gc", Platform:"linux/amd64"}
+kubefed2 version: version.Info{Version:"v0.0.6", GitCommit:"d56dfb3b83e8d40e584b5e66116de98328846fd2", GitTreeState:"clean", BuildDate:"2019-02-21T18:17:51Z", GoVersion:"go1.11.2", Compiler:"gc", Platform:"linux/amd64"}
 ~~~
 
 <a id="markdown-download-the-example-code" name="download-the-example-code"></a>
-## Download the example code
+## Download the Example Code
 
 Clone the demo code to your local machine:
 
@@ -95,14 +95,14 @@ cd federation-dev/
 ~~~
 
 <a id="markdown-federation-deployment" name="federation-deployment"></a>
-# Federation deployment
+# Federation Deployment
 
 <a id="markdown-create-the-two-openshift-clusters" name="create-the-two-openshift-clusters"></a>
-## Create the two OpenShift clusters
+## Create the Two OpenShift Clusters
 
 Start two minishift clusters with OKD version 3.11 called `cluster1` and
 `cluster2`. Note that these cluster names are referenced throughout the
-walkthrough, so it's recommended that you adhere to them:
+walkthrough, so it is recommended that you adhere to them:
 
 ~~~sh
 minishift start --profile cluster1 
@@ -130,7 +130,7 @@ or the command line:
         oc login -u system:admin
 
 <a id="markdown-configure-client-context-for-cluster-admin-access" name="configure-client-context-for-cluster-admin-access"></a>
-### Configure client context for cluster admin access
+### Configure Client Context for Cluster Admin Access
 
 In order to use the `oc` client bundled with minishift, run this to add it to
 your `$PATH`:
@@ -170,7 +170,9 @@ cluster1
 system:admin
 ~~~
 
-The presence and naming of the client contexts is important because the `kubefed2` tool uses them to manage cluster registration, and they are referenced by context name.
+The presence and naming of the client contexts is important because the
+`kubefed2` tool uses them to manage cluster registration, and they are
+referenced by context name.
 
 <a id="markdown-deploy-federation" name="deploy-federation"></a>
 ## Deploy Federation
@@ -189,7 +191,7 @@ oc create clusterrolebinding federation-admin \
     --serviceaccount="federation-system:default"
 ~~~
 
-Change directory to Federation V2 repo (The repository submodule is already pointing to `tag/v0.0.4`):
+Change directory to Federation V2 repo (The repository submodule is already pointing to `tag/v0.0.6`):
 
 ~~~sh
 cd federation-v2/
@@ -208,7 +210,7 @@ Deploy the federation control plane and its associated Custom Resource Definitio
 oc -n federation-system apply --validate=false -f hack/install-latest.yaml
 ~~~
 
-Deploy the [cluster registry](https://github.com/kubernetes/cluster-registry) and the namespace where clusters are registered
+Deploy the [cluster registry](https://github.com/kubernetes/cluster-registry) into the namespace where clusters are registered
 (`kube-multicluster-public`):
 
 ~~~sh
@@ -220,17 +222,16 @@ The above created:
 -   The federation CRDs
 -   A [StatefulSet](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/) that deploys the federation controller, and a [Service](https://kubernetes.io/docs/concepts/services-networking/service/) for it.
 
-Now deploy the CRDs that determine which Kubernetes resources are federated across
-the clusters:
+Now use the `kubefed2` tool to "enable" the CRDs that control federation of Kubernetes types across multiple clusters.
 
 ~~~sh
-for filename in ./config/federatedirectives/*.yaml
+for filename in ./config/enabletypedirectives/*.yaml
 do
-  kubefed2 federate enable -f "${filename}" --federation-namespace=federation-system
+  kubefed2 enable -f "${filename}" --federation-namespace=federation-system
 done
 ~~~
 
-After a short while the federation controller manager pod is running:
+After a short while the federation controller manager pod should be running:
 
 ~~~sh
 oc get pod -n federation-system
@@ -269,7 +270,14 @@ kubefed2 join cluster2 \
             --federation-namespace=federation-system
 ~~~
 
-Note that the names of the clusters (`cluster1` and `cluster2`) in the commands above are a refence to the contexts configured in the `oc` client. For this to work as expected you need to make sure that the [client contexts](#configure-client-context-for-cluster-admin-access) have been properly configured with the right access levels and context names. The `--cluster-context` option for `kubefed2 join` can be used to override the refernce to the client context configuration. When the option is not present, `kubefed2` uses the cluster name to identify the client context.
+Note that the names of the clusters (`cluster1` and `cluster2`) in the commands
+above are a refence to the contexts configured in the `oc` client. For this to
+work as expected you need to make sure that the [client
+contexts](#configure-client-context-for-cluster-admin-access) have been
+properly configured with the right access levels and context names. The
+`--cluster-context` option for `kubefed2 join` can be used to override the
+refernce to the client context configuration. When the option is not present,
+`kubefed2` uses the cluster name to identify the client context.
 
 Verify that the federated clusters are registered and in a ready state (this
 can take a moment):
@@ -334,17 +342,18 @@ Events:                    <none>
 ~~~
 
 <a id="markdown-example-application" name="example-application"></a>
-# Example application
+# Example Application
 
 Now that we have federation installed, let’s deploy an example app in both
 clusters through the federation control plane.
 
 <a id="markdown-create-a-federated-namespace" name="create-a-federated-namespace"></a>
-## Create a federated namespace
+## Create a Federated Namespace
 
 Create a test project (`test-namespace`) and add a federated placement policy
 for it:
 
+// TODO Update from here.
 ~~~sh
 cat << EOF | oc create -f -
 apiVersion: v1
